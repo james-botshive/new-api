@@ -5278,6 +5278,13 @@
     "Generating QR...": "正在生成二维码...",
     "QR code expired. Please try again.": "二维码已过期，请重试。",
     "Failed to generate QR code": "生成二维码失败",
-    "Failed to connect to WeChat service": "无法连接微信服务"
+    "Failed to connect to WeChat service": "无法连接微信服务",
+    "Channel Failure Alert": "渠道故障告警",
+    "Send WeChat notification to admins when an upstream channel fails consecutively.": "上游渠道连续失败时，向管理员发送微信告警通知。",
+    "Enable channel failure alert": "启用渠道故障告警",
+    "Consecutive failure threshold": "连续失败阈值",
+    "Alert after this many consecutive failures (3 recommended)": "连续失败多少次后告警（建议 3 次）",
+    "Alert cooldown (minutes)": "告警冷却时间（分钟）",
+    "Minimum interval between repeated alerts (0 = alert on every threshold hit)": "重复告警的最小间隔（0 = 每次达到阈值都告警）"
   }
 }

@@ -239,6 +239,9 @@ export type ModelSettings = {
     | 'scheduled_all'
     | 'auto_ban_only'
     | 'passive_recovery'
+  'monitor_setting.channel_failure_monitor_enabled': boolean
+  'monitor_setting.channel_failure_threshold': number
+  'monitor_setting.channel_failure_cooldown_minutes': number
   'channel_affinity_setting.enabled': boolean
   'channel_affinity_setting.switch_on_success': boolean
   'channel_affinity_setting.keep_on_channel_disabled': boolean
@@ -365,6 +368,9 @@ export type OperationsSettings = {
   'perf_metrics_setting.flush_interval': number
   'perf_metrics_setting.bucket_time': 'hour' | 'minute' | '5min'
   'perf_metrics_setting.retention_days': number
+  'monitor_setting.channel_failure_monitor_enabled': boolean
+  'monitor_setting.channel_failure_threshold': number
+  'monitor_setting.channel_failure_cooldown_minutes': number
 }
 
 export type SecuritySettings = {

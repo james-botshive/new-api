@@ -55,6 +55,12 @@ const OPERATIONS_SECTIONS = [
             settings['perf_metrics_setting.bucket_time'] ?? 'hour',
           'perf_metrics_setting.retention_days':
             settings['perf_metrics_setting.retention_days'] ?? 0,
+          'monitor_setting.channel_failure_monitor_enabled':
+            settings['monitor_setting.channel_failure_monitor_enabled'] ?? false,
+          'monitor_setting.channel_failure_threshold':
+            settings['monitor_setting.channel_failure_threshold'] ?? 5,
+          'monitor_setting.channel_failure_cooldown_minutes':
+            settings['monitor_setting.channel_failure_cooldown_minutes'] ?? 10,
         }}
       />
     ),

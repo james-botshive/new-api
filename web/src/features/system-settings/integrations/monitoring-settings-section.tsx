@@ -62,6 +62,9 @@ const numericString = z.string().refine((value) => {
 
 const monitoringSchema = z.object({
   QuotaRemindThreshold: numericString,
+  channel_failure_monitor_enabled: z.boolean(),
+  channel_failure_threshold: z.coerce.number().min(1).max(1000),
+  channel_failure_cooldown_minutes: z.coerce.number().min(0).max(1440),
   perf_metrics_setting: z.object({
     enabled: z.boolean(),
     flush_interval: z.coerce.number().min(1),
@@ -75,6 +78,9 @@ type MonitoringFormValues = z.output<typeof monitoringSchema>
 
 type FlatMonitoringDefaults = {
   QuotaRemindThreshold: string
+  'monitor_setting.channel_failure_monitor_enabled': boolean
+  'monitor_setting.channel_failure_threshold': number
+  'monitor_setting.channel_failure_cooldown_minutes': number
   'perf_metrics_setting.enabled': boolean
   'perf_metrics_setting.flush_interval': number
   'perf_metrics_setting.bucket_time': 'minute' | '5min' | 'hour'
@@ -89,6 +95,12 @@ const buildFormDefaults = (
   defaults: MonitoringSettingsSectionProps['defaultValues']
 ): MonitoringFormInput => ({
   QuotaRemindThreshold: defaults.QuotaRemindThreshold ?? '',
+  channel_failure_monitor_enabled:
+    defaults['monitor_setting.channel_failure_monitor_enabled'],
+  channel_failure_threshold:
+    defaults['monitor_setting.channel_failure_threshold'],
+  channel_failure_cooldown_minutes:
+    defaults['monitor_setting.channel_failure_cooldown_minutes'],
   perf_metrics_setting: {
     enabled: defaults['perf_metrics_setting.enabled'],
     flush_interval: defaults['perf_metrics_setting.flush_interval'],
@@ -101,6 +113,12 @@ const normalizeDefaults = (
   defaults: MonitoringSettingsSectionProps['defaultValues']
 ): FlatMonitoringDefaults => ({
   QuotaRemindThreshold: (defaults.QuotaRemindThreshold ?? '').trim(),
+  'monitor_setting.channel_failure_monitor_enabled':
+    defaults['monitor_setting.channel_failure_monitor_enabled'],
+  'monitor_setting.channel_failure_threshold':
+    defaults['monitor_setting.channel_failure_threshold'],
+  'monitor_setting.channel_failure_cooldown_minutes':
+    defaults['monitor_setting.channel_failure_cooldown_minutes'],
   'perf_metrics_setting.enabled': defaults['perf_metrics_setting.enabled'],
   'perf_metrics_setting.flush_interval':
     defaults['perf_metrics_setting.flush_interval'],
@@ -114,6 +132,12 @@ const normalizeFormValues = (
   values: MonitoringFormValues
 ): FlatMonitoringDefaults => ({
   QuotaRemindThreshold: values.QuotaRemindThreshold.trim(),
+  'monitor_setting.channel_failure_monitor_enabled':
+    values.channel_failure_monitor_enabled,
+  'monitor_setting.channel_failure_threshold':
+    values.channel_failure_threshold,
+  'monitor_setting.channel_failure_cooldown_minutes':
+    values.channel_failure_cooldown_minutes,
   'perf_metrics_setting.enabled': values.perf_metrics_setting.enabled,
   'perf_metrics_setting.flush_interval':
     values.perf_metrics_setting.flush_interval,
@@ -208,6 +232,84 @@ export function MonitoringSettingsSection({
               </FormItem>
             )}
           />
+
+          <div>
+            <h4 className='font-medium'>{t('Channel Failure Alert')}</h4>
+            <p className='text-muted-foreground mt-1 text-xs'>
+              {t(
+                'Send WeChat notification to admins when an upstream channel fails consecutively.'
+              )}
+            </p>
+          </div>
+
+          <FormField
+            control={form.control}
+            name='channel_failure_monitor_enabled'
+            render={({ field }) => (
+              <SettingsSwitchItem>
+                <SettingsSwitchContent>
+                  <FormLabel>{t('Enable channel failure alert')}</FormLabel>
+                </SettingsSwitchContent>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </SettingsSwitchItem>
+            )}
+          />
+
+          <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+            <FormField
+              control={form.control}
+              name='channel_failure_threshold'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Consecutive failure threshold')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='number'
+                      min={1}
+                      max={1000}
+                      step={1}
+                      {...safeNumberFieldProps(field)}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      'Alert after this many consecutive failures (3 recommended)'
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='channel_failure_cooldown_minutes'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Alert cooldown (minutes)')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='number'
+                      min={0}
+                      max={1440}
+                      step={1}
+                      {...safeNumberFieldProps(field)}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      'Minimum interval between repeated alerts (0 = alert on every threshold hit)'
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
           <div>
             <h4 className='font-medium'>{t('Model performance metrics')}</h4>
