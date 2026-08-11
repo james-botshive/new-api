@@ -370,6 +370,9 @@ func processChannelError(c *gin.Context, channelError types.ChannelError, err *t
 		})
 	}
 
+	// Increment consecutive failure counter for resource monitoring
+	service.HandleChannelFailure(channelError, err.ErrorWithStatusCode())
+
 	if constant.ErrorLogEnabled && types.IsRecordErrorLog(err) {
 		// 保存错误日志到mysql中
 		userId := c.GetInt("id")

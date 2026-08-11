@@ -5265,6 +5265,19 @@
     "Zero retention": "零数据保留",
     "Zhipu": "智谱",
     "Zhipu V4": "智谱 V4",
-    "Zoom": "缩放"
+    "Zoom": "缩放",
+    "WeChat binding QR code": "微信绑定二维码",
+    "WeChat binding successful!": "微信绑定成功！",
+    "WeChat Bound": "微信已绑定",
+    "WeChat User ID": "微信用户 ID",
+    "Waiting for scan...": "等待扫码中...",
+    "Scanned! Confirm on your phone...": "已扫码！请在手机上确认...",
+    "Bind WeChat for Notifications": "绑定微信接收通知",
+    "Scan a QR code with WeChat to bind your account and receive alert notifications.": "使用微信扫描二维码绑定账号，接收告警通知。",
+    "Generate QR Code": "生成二维码",
+    "Generating QR...": "正在生成二维码...",
+    "QR code expired. Please try again.": "二维码已过期，请重试。",
+    "Failed to generate QR code": "生成二维码失败",
+    "Failed to connect to WeChat service": "无法连接微信服务"
   }
 }

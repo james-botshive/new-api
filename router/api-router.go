@@ -113,6 +113,11 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.POST("/aff_transfer", middleware.UserCriticalRateLimit("aff-transfer"), controller.TransferAffQuota)
 				selfRoute.PUT("/setting", controller.UpdateUserSetting)
 
+				// WeChat Bot binding routes (QR scan + manual bind)
+				selfRoute.POST("/wechat/bot/qrcode", controller.GetWeChatQRCode)
+				selfRoute.GET("/wechat/bot/qrcode/status", controller.PollWeChatQRStatus)
+				selfRoute.POST("/wechat/bot/bind", controller.BindWeChatUser)
+
 				// 2FA routes
 				selfRoute.GET("/2fa/status", controller.Get2FAStatus)
 				selfRoute.POST("/2fa/setup", middleware.DisableCache(), controller.Setup2FA)

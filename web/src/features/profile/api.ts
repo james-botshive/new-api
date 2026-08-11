@@ -136,6 +136,46 @@ export async function bindWeChat(code: string): Promise<ApiResponse> {
   return res.data
 }
 
+// ============================================================================
+// WeChat Bot Binding APIs
+// ============================================================================
+
+export interface WeChatQRCodeResponse {
+  success: boolean
+  session_key?: string
+  qrcode_url?: string
+  message?: string
+}
+
+export interface WeChatQRStatusResponse {
+  success: boolean
+  data?: {
+    status: string
+    wechat_user_id?: string
+    bound?: string
+  }
+}
+
+/**
+ * Generate a WeChat Bot QR code for admin to scan
+ */
+export async function getWeChatQRCode(): Promise<WeChatQRCodeResponse> {
+  const res = await api.post('/api/user/wechat/bot/qrcode')
+  return res.data
+}
+
+/**
+ * Poll QR code scan status
+ */
+export async function pollWeChatQRStatus(
+  sessionKey: string
+): Promise<WeChatQRStatusResponse> {
+  const res = await api.get(
+    `/api/user/wechat/bot/qrcode/status?session_key=${encodeURIComponent(sessionKey)}`
+  )
+  return res.data
+}
+
 export interface TelegramBindFlow {
   flow_token: string
   callback_url: string
