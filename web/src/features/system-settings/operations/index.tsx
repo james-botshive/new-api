@@ -56,6 +56,9 @@ const defaultOperationsSettings: OperationsSettings = {
   'perf_metrics_setting.flush_interval': 5,
   'perf_metrics_setting.bucket_time': 'hour',
   'perf_metrics_setting.retention_days': 0,
+  'monitor_setting.channel_failure_monitor_enabled': false,
+  'monitor_setting.channel_failure_threshold': 5,
+  'monitor_setting.channel_failure_cooldown_minutes': 10,
 }
 
 export function OperationsSettings() {
