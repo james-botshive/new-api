@@ -40,14 +40,17 @@ function fmt(n: number): string {
   return String(n)
 }
 
-function todayStart(): string {
-  return new Date().toISOString().slice(0, 10)
+function defaultStart(): string {
+  const d = new Date()
+  d.setDate(d.getDate() - 7)
+  d.setHours(0, 0, 0, 0)
+  return d.toISOString().slice(0, 16)
 }
 
-function daysAgo(n: number): string {
+function defaultEnd(): string {
   const d = new Date()
-  d.setDate(d.getDate() - n)
-  return d.toISOString().slice(0, 10)
+  d.setHours(23, 59, 59, 0)
+  return d.toISOString().slice(0, 16)
 }
 
 export function ReconciliationPage() {
@@ -55,8 +58,8 @@ export function ReconciliationPage() {
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<ReconResult | null>(null)
   const [error, setError] = useState('')
-  const [startDate, setStartDate] = useState(daysAgo(7))
-  const [endDate, setEndDate] = useState(todayStart())
+  const [startTime, setStartTime] = useState(defaultStart())
+  const [endTime, setEndTime] = useState(defaultEnd())
   const [modelFilter, setModelFilter] = useState('')
   const [modelOptions, setModelOptions] = useState<{ value: string; label: string }[]>([])
 
@@ -72,8 +75,8 @@ export function ReconciliationPage() {
     setLoading(true)
     setError('')
     try {
-      const startTs = startDate ? Math.floor(new Date(startDate).getTime() / 1000) : 0
-      const endTs = endDate ? Math.floor(new Date(endDate + 'T23:59:59').getTime() / 1000) : 0
+      const startTs = startTime ? Math.floor(new Date(startTime).getTime() / 1000) : 0
+      const endTs = endTime ? Math.floor(new Date(endTime).getTime() / 1000) : 0
       const res = await getPersonalReconciliation({
         start_timestamp: startTs || undefined,
         end_timestamp: endTs || undefined,
@@ -89,7 +92,7 @@ export function ReconciliationPage() {
     } finally {
       setLoading(false)
     }
-  }, [startDate, endDate, modelFilter, t])
+  }, [startTime, endTime, modelFilter, t])
 
   const items = data?.items || []
   const total = data?.total
@@ -105,12 +108,12 @@ export function ReconciliationPage() {
       <Card>
         <CardContent className='flex flex-wrap items-end gap-3 pt-6'>
           <div className='space-y-1'>
-            <Label className='text-xs'>{t('Start Date')}</Label>
-            <Input type='date' className='h-9 w-36' value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            <Label className='text-xs'>{t('Start')}</Label>
+            <Input type='datetime-local' className='h-9 w-44' value={startTime} onChange={(e) => setStartTime(e.target.value)} />
           </div>
           <div className='space-y-1'>
-            <Label className='text-xs'>{t('End Date')}</Label>
-            <Input type='date' className='h-9 w-36' value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            <Label className='text-xs'>{t('End')}</Label>
+            <Input type='datetime-local' className='h-9 w-44' value={endTime} onChange={(e) => setEndTime(e.target.value)} />
           </div>
           <div className='space-y-1'>
             <Label className='text-xs'>{t('Model')}</Label>
