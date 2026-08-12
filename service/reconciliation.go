@@ -27,8 +27,8 @@ type ReconResult struct {
 }
 
 // GetPersonalReconciliation returns current user's consume logs aggregated by model.
-func GetPersonalReconciliation(userId int, startTs, endTs int64, modelName string) (*ReconResult, error) {
-	logs, _, err := model.GetUserLogs(userId, model.LogTypeConsume, startTs, endTs, modelName, "", 0, 10000, "", "", "")
+func GetPersonalReconciliation(userId int, startTs, endTs int64, modelName, group string) (*ReconResult, error) {
+	logs, _, err := model.GetUserLogs(userId, model.LogTypeConsume, startTs, endTs, modelName, "", 0, 10000, group, "", "")
 	if err != nil {
 		return nil, err
 	}

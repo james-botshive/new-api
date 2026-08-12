@@ -234,11 +234,13 @@ export async function getPersonalReconciliation(params: {
   start_timestamp?: number
   end_timestamp?: number
   model_name?: string
+  group?: string
 }): Promise<ApiResponse<ReconResult>> {
   const search = new URLSearchParams()
   if (params.start_timestamp) search.set('start_timestamp', String(params.start_timestamp))
   if (params.end_timestamp) search.set('end_timestamp', String(params.end_timestamp))
   if (params.model_name) search.set('model_name', params.model_name)
+  if (params.group) search.set('group', params.group)
   const res = await api.get(`/api/log/self/reconciliation?${search}`)
   return res.data
 }

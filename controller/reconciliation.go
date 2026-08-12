@@ -30,8 +30,9 @@ func GetPersonalReconciliation(c *gin.Context) {
 	startTs, _ := strconv.ParseInt(c.Query("start_timestamp"), 10, 64)
 	endTs, _ := strconv.ParseInt(c.Query("end_timestamp"), 10, 64)
 	modelName := c.Query("model_name")
+	group := c.Query("group")
 
-	result, err := service.GetPersonalReconciliation(userId, startTs, endTs, modelName)
+	result, err := service.GetPersonalReconciliation(userId, startTs, endTs, modelName, group)
 	if err != nil {
 		common.ApiError(c, err)
 		return

@@ -65,6 +65,7 @@ export function ReconciliationPage() {
   const [startTime, setStartTime] = useState(defaultStart())
   const [endTime, setEndTime] = useState(defaultEnd())
   const [modelFilter, setModelFilter] = useState('')
+  const [groupFilter, setGroupFilter] = useState('')
   const [modelOptions, setModelOptions] = useState<{ value: string; label: string }[]>([])
 
   useEffect(() => {
@@ -84,6 +85,7 @@ export function ReconciliationPage() {
         start_timestamp: startTs || undefined,
         end_timestamp: endTs || undefined,
         model_name: modelFilter.trim() || undefined,
+        group: groupFilter.trim() || undefined,
       })
       if (res.success && res.data) {
         setData(res.data)
@@ -95,7 +97,7 @@ export function ReconciliationPage() {
     } finally {
       setLoading(false)
     }
-  }, [startTime, endTime, modelFilter, t])
+  }, [startTime, endTime, modelFilter, groupFilter, t])
 
   const items = data?.items || []
   const total = data?.total
@@ -117,6 +119,10 @@ export function ReconciliationPage() {
         <div className='space-y-1'>
           <Label className='text-xs'>{t('Model')}</Label>
           <ComboboxInput options={modelOptions} value={modelFilter} onValueChange={setModelFilter} placeholder={t('All models')} emptyText={t('No models found')} allowCustomValue className='w-52' />
+        </div>
+        <div className='space-y-1'>
+          <Label className='text-xs'>{t('Group')}</Label>
+          <ComboboxInput options={[]} value={groupFilter} onValueChange={setGroupFilter} placeholder={t('All')} emptyText='' allowCustomValue className='w-28' />
         </div>
         <Button size='sm' onClick={query} disabled={loading}>
           {loading ? <Loader2 className='mr-1 h-4 w-4 animate-spin' /> : <Search className='mr-1 h-4 w-4' />}
