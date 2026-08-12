@@ -889,7 +889,7 @@ func TestChannel(c *gin.Context) {
 	if result.localErr != nil {
 		// Track failure for resource monitor
 		if result.newAPIError != nil {
-			service.HandleChannelFailure(*types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, "", channel.GetAutoBan()), result.newAPIError.ErrorWithStatusCode())
+			service.HandleChannelFailure(*types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, "", channel.GetAutoBan()), "default", testModel, result.newAPIError.ErrorWithStatusCode())
 		}
 		resp := gin.H{
 			"success": false,
@@ -908,7 +908,7 @@ func TestChannel(c *gin.Context) {
 	consumedTime := float64(milliseconds) / 1000.0
 	if result.newAPIError != nil {
 		// Track failure for resource monitor
-		service.HandleChannelFailure(*types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, "", channel.GetAutoBan()), result.newAPIError.ErrorWithStatusCode())
+		service.HandleChannelFailure(*types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, "", channel.GetAutoBan()), "default", testModel, result.newAPIError.ErrorWithStatusCode())
 		c.JSON(http.StatusOK, gin.H{
 			"success":    false,
 			"message":    result.newAPIError.Error(),

@@ -34,10 +34,6 @@ func DisableChannel(channelError types.ChannelError, reason string) {
 }
 
 func EnableChannel(channelId int, usingKey string, channelName string) {
-	// Reset failure counter on re-enable so stale pre-disable counts
-	// do not trigger an immediate alert after recovery.
-	ResetChannelFailure(channelId, usingKey)
-
 	success := model.UpdateChannelStatus(channelId, usingKey, common.ChannelStatusEnabled, "")
 	if success {
 		subject := fmt.Sprintf("通道「%s」（#%d）已被启用", channelName, channelId)

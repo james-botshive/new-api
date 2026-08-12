@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"strconv"
 	"sync"
 	"time"
 
@@ -28,27 +27,32 @@ type channelFailureEntry struct {
 	lastError   string
 }
 
-// channelFailKey mirrors the multi-key semantics used by DisableChannel:
-// multi-key channels are tracked per (channelId, usingKey) so one bad key
-// does not suppress alerts for healthy keys on the same channel.
-func channelFailKey(channelId int, usingKey string) string {
-	if usingKey == "" {
-		return strconv.Itoa(channelId)
+// channelFailKey builds a unique key for channel→group→model granularity.
+// Format: channelId:group:modelName[:usingKey]
+func channelFailKey(channelId int, group, modelName, usingKey string) string {
+	base := fmt.Sprintf("%d:%s:%s", channelId, group, modelName)
+	if usingKey != "" {
+		base += ":" + usingKey
 	}
-	return fmt.Sprintf("%d:%s", channelId, usingKey)
+	return base
 }
 
-// HandleChannelFailure increments the consecutive-failure counter for a channel.
-// When the counter crosses the configured threshold and the channel is not
-// already alerted (or the cooldown has elapsed), it fires a notification
-// to the root user asynchronously.
-func HandleChannelFailure(channelError types.ChannelError, lastError string) {
+// HandleChannelFailure increments the consecutive-failure counter for a
+// specific channel+group+model combination. When the counter crosses the
+// configured threshold, it fires a WeChat notification to the root user.
+func HandleChannelFailure(channelError types.ChannelError, group, modelName, lastError string) {
 	setting := operation_setting.GetMonitorSetting()
 	if !setting.ChannelFailureMonitorEnabled || setting.ChannelFailureThreshold <= 0 {
 		return
 	}
+	if modelName == "" {
+		modelName = "unknown"
+	}
+	if group == "" {
+		group = "default"
+	}
 
-	key := channelFailKey(channelError.ChannelId, channelError.UsingKey)
+	key := channelFailKey(channelError.ChannelId, group, modelName, channelError.UsingKey)
 	val, _ := channelFailureStore.LoadOrStore(key, &channelFailureEntry{
 		channelName: channelError.ChannelName,
 	})
@@ -65,7 +69,6 @@ func HandleChannelFailure(channelError types.ChannelError, lastError string) {
 			shouldNotify = true
 		} else if setting.ChannelFailureCooldownMinutes > 0 &&
 			time.Since(entry.lastAlertAt) >= time.Duration(setting.ChannelFailureCooldownMinutes)*time.Minute {
-			// Periodic re-alert while channel keeps failing
 			shouldNotify = true
 		}
 	}
@@ -79,34 +82,33 @@ func HandleChannelFailure(channelError types.ChannelError, lastError string) {
 		return
 	}
 
-	// Fire notification asynchronously (same pattern as DisableChannel)
+	// Fire notification asynchronously
 	entryCopy := entry
 	gopool.Go(func() {
-		notifyType := fmt.Sprintf("%s_%d", dto.NotifyTypeChannelFail, channelError.ChannelId)
-		subject := fmt.Sprintf("通道「%s」（#%d）连续失败 %d 次",
-			channelError.ChannelName, channelError.ChannelId, entryCopy.count)
-		content := fmt.Sprintf("通道「%s」（#%d）连续失败 %d 次（阈值 %d）\n最后一次错误：%s",
-			channelError.ChannelName, channelError.ChannelId, entryCopy.count,
-			setting.ChannelFailureThreshold, common.LocalLogPreview(entryCopy.lastError))
+		notifyType := fmt.Sprintf("%s_%d_%s_%s", dto.NotifyTypeChannelFail, channelError.ChannelId, group, modelName)
+		subject := fmt.Sprintf("渠道 %s(#%d) 分组 %s 模型 %s 连续失败 %d 次",
+			channelError.ChannelName, channelError.ChannelId, group, modelName, entryCopy.count)
+		content := fmt.Sprintf("渠道：%s(#%d)\n分组：%s\n模型：%s\n连续失败：%d 次（阈值 %d）\n最后错误：%s",
+			channelError.ChannelName, channelError.ChannelId,
+			group, modelName,
+			entryCopy.count, setting.ChannelFailureThreshold,
+			common.LocalLogPreview(entryCopy.lastError))
 		NotifyRootUser(notifyType, subject, content)
 	})
 }
 
-// ResetChannelFailure clears the counter and alerted state for a channel.
-// Called on a successful relay request and when a channel is manually re-enabled.
-func ResetChannelFailure(channelId int, usingKey string) {
-	channelFailureStore.Delete(channelFailKey(channelId, usingKey))
+// ResetChannelFailure clears the counter and alerted state for a channel+group+model.
+func ResetChannelFailure(channelId int, group, modelName, usingKey string) {
+	channelFailureStore.Delete(channelFailKey(channelId, group, modelName, usingKey))
 }
 
-// GetChannelFailureState returns the current failure state for a channel,
-// or nil if no failures have been recorded. Exported for admin/diagnostics.
-func GetChannelFailureState(channelId int, usingKey string) *channelFailureEntry {
-	key := channelFailKey(channelId, usingKey)
+// GetChannelFailureState returns the current failure state, or nil if none.
+func GetChannelFailureState(channelId int, group, modelName, usingKey string) *channelFailureEntry {
+	key := channelFailKey(channelId, group, modelName, usingKey)
 	if val, ok := channelFailureStore.Load(key); ok {
 		entry := val.(*channelFailureEntry)
 		entry.mu.Lock()
 		defer entry.mu.Unlock()
-		// Return a copy to avoid races
 		copy := *entry
 		return &copy
 	}

@@ -166,7 +166,7 @@ func Distribute() func(c *gin.Context) {
 		c.Next()
 		if channel != nil && c.Writer != nil && c.Writer.Status() < http.StatusBadRequest {
 			service.RecordChannelAffinity(c, channel.Id)
-			service.ResetChannelFailure(channel.Id, common.GetContextKeyString(c, constant.ContextKeyChannelKey))
+			service.ResetChannelFailure(channel.Id, c.GetString("group"), modelRequest.Model, common.GetContextKeyString(c, constant.ContextKeyChannelKey))
 		}
 	}
 }

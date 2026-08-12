@@ -371,7 +371,9 @@ func processChannelError(c *gin.Context, channelError types.ChannelError, err *t
 	}
 
 	// Increment consecutive failure counter for resource monitoring
-	service.HandleChannelFailure(channelError, err.ErrorWithStatusCode())
+	modelName := c.GetString("original_model")
+	group := c.GetString("group")
+	service.HandleChannelFailure(channelError, group, modelName, err.ErrorWithStatusCode())
 
 	if constant.ErrorLogEnabled && types.IsRecordErrorLog(err) {
 		// 保存错误日志到mysql中
