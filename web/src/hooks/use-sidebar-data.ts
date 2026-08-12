@@ -92,6 +92,12 @@ export function useSidebarData(): SidebarData {
             icon: FileText,
           },
           {
+            title: t('Reconciliation'),
+            url: '/admin-reconciliation',
+            icon: BarChart3,
+            requiredRole: ROLE.ADMIN,
+          },
+          {
             title: t('Task Logs'),
             url: '/usage-logs/task',
             activeUrls: ['/usage-logs/drawing'],

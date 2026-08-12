@@ -33,7 +33,6 @@ import {
   useLogsViewScope,
   useUsageLogsContext,
 } from './components/usage-logs-provider'
-import { ReconciliationTable } from './components/reconciliation-table'
 import { UsageLogsTable } from './components/usage-logs-table'
 import {
   isUsageLogsSectionId,
@@ -53,9 +52,6 @@ const SECTION_META: Record<UsageLogsSectionId, { titleKey: string }> = {
   },
   task: {
     titleKey: 'Task Logs',
-  },
-  reconciliation: {
-    titleKey: 'Reconciliation',
   },
 }
 
@@ -121,9 +117,10 @@ function UsageLogsContent() {
     [setViewScope]
   )
 
-  const pageMeta = SECTION_META[activeCategory] || SECTION_META.common
+  const pageMeta =
+    activeCategory === 'common' ? SECTION_META.common : SECTION_META.task
   const showTaskSwitcher =
-    activeCategory !== 'common' && activeCategory !== 'reconciliation' && visibleSections.length > 1
+    activeCategory !== 'common' && visibleSections.length > 1
 
   return (
     <>
@@ -155,11 +152,7 @@ function UsageLogsContent() {
               </Tabs>
             )}
             <div className='min-h-0 flex-1'>
-              {activeCategory === 'reconciliation' ? (
-                <ReconciliationTable />
-              ) : (
-                <UsageLogsTable logCategory={activeCategory} />
-              )}
+              <UsageLogsTable logCategory={activeCategory} />
             </div>
           </div>
         </SectionPageLayout.Content>
