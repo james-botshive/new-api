@@ -40,17 +40,22 @@ function fmt(n: number): string {
   return String(n)
 }
 
+function fmtDatetime(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+}
+
 function defaultStart(): string {
   const d = new Date()
   d.setDate(d.getDate() - 7)
   d.setHours(0, 0, 0, 0)
-  return d.toISOString().slice(0, 16)
+  return fmtDatetime(d)
 }
 
 function defaultEnd(): string {
   const d = new Date()
   d.setHours(23, 59, 59, 0)
-  return d.toISOString().slice(0, 16)
+  return fmtDatetime(d)
 }
 
 export function ReconciliationPage() {
@@ -109,11 +114,11 @@ export function ReconciliationPage() {
         <CardContent className='flex flex-wrap items-end gap-3 pt-6'>
           <div className='space-y-1'>
             <Label className='text-xs'>{t('Start')}</Label>
-            <Input type='datetime-local' className='h-9 w-44' value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+            <Input type='datetime-local' step='1' className='h-9 w-52' value={startTime} onChange={(e) => setStartTime(e.target.value)} />
           </div>
           <div className='space-y-1'>
             <Label className='text-xs'>{t('End')}</Label>
-            <Input type='datetime-local' className='h-9 w-44' value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+            <Input type='datetime-local' step='1' className='h-9 w-52' value={endTime} onChange={(e) => setEndTime(e.target.value)} />
           </div>
           <div className='space-y-1'>
             <Label className='text-xs'>{t('Model')}</Label>
