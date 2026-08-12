@@ -17,12 +17,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Loader2, Search } from 'lucide-react'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ComboboxInput } from '@/components/ui/combobox-input'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { api } from '@/lib/api'
 
 import { getAdminReconciliation } from '../api'
 import type { ReconItem, ReconResult } from '../api'
@@ -37,14 +40,17 @@ function fmt(n: number): string {
   return String(n)
 }
 
-function todayStart(): string {
-  return new Date().toISOString().slice(0, 10)
+function defaultStart(): string {
+  const d = new Date()
+  d.setDate(d.getDate() - 7)
+  d.setHours(0, 0, 0, 0)
+  return d.toISOString().slice(0, 16)
 }
 
-function daysAgo(n: number): string {
+function defaultEnd(): string {
   const d = new Date()
-  d.setDate(d.getDate() - n)
-  return d.toISOString().slice(0, 10)
+  d.setHours(23, 59, 59, 0)
+  return d.toISOString().slice(0, 16)
 }
 
 export function ReconciliationTable() {
@@ -52,23 +58,43 @@ export function ReconciliationTable() {
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<ReconResult | null>(null)
   const [error, setError] = useState('')
-  const [startDate, setStartDate] = useState(daysAgo(7))
-  const [endDate, setEndDate] = useState(todayStart())
+  const [startTime, setStartTime] = useState(defaultStart())
+  const [endTime, setEndTime] = useState(defaultEnd())
   const [modelFilter, setModelFilter] = useState('')
   const [userFilter, setUserFilter] = useState('')
+  const [channelFilter, setChannelFilter] = useState('')
+  const [groupFilter, setGroupFilter] = useState('')
+
+  const [userOptions, setUserOptions] = useState<{ value: string; label: string }[]>([])
+  const [modelOptions, setModelOptions] = useState<{ value: string; label: string }[]>([])
+  const [channelOptions] = useState<{ value: string; label: string }[]>([])
+  const [groupOptions] = useState<{ value: string; label: string }[]>([])
+
+  // Fetch filter options
+  useEffect(() => {
+    api.get('/api/log/reconciliation/filters').then((res: any) => {
+      const data = res.data?.data ?? {}
+      const users: string[] = data.users ?? []
+      const models: string[] = data.models ?? []
+      setUserOptions(users.map((u) => ({ value: u, label: u })))
+      setModelOptions(models.map((m) => ({ value: m, label: m })))
+    }).catch(() => {})
+  }, [])
 
   const query = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
-      const startTs = startDate ? Math.floor(new Date(startDate).getTime() / 1000) : 0
-      const endTs = endDate ? Math.floor(new Date(endDate + 'T23:59:59').getTime() / 1000) : 0
+      const startTs = startTime ? Math.floor(new Date(startTime).getTime() / 1000) : 0
+      const endTs = endTime ? Math.floor(new Date(endTime).getTime() / 1000) : 0
       const res = await getAdminReconciliation({
         start_timestamp: startTs || undefined,
         end_timestamp: endTs || undefined,
         model_name: modelFilter.trim() || undefined,
         username: userFilter.trim() || undefined,
-      })
+        channel: channelFilter || undefined,
+        group: groupFilter.trim() || undefined,
+      } as any)
       if (res.success) {
         setData(res.data)
       } else {
@@ -79,7 +105,7 @@ export function ReconciliationTable() {
     } finally {
       setLoading(false)
     }
-  }, [startDate, endDate, modelFilter, userFilter, t])
+  }, [startTime, endTime, modelFilter, userFilter, channelFilter, groupFilter, t])
 
   const items = data?.items || []
   const total = data?.total
@@ -88,20 +114,28 @@ export function ReconciliationTable() {
     <div className='space-y-4'>
       <div className='flex flex-wrap items-end gap-3'>
         <div className='space-y-1'>
-          <Label className='text-xs'>{t('Start Date')}</Label>
-          <Input type='date' className='h-9 w-36' value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          <Label className='text-xs'>{t('Start')}</Label>
+          <Input type='datetime-local' className='h-9 w-44' value={startTime} onChange={(e) => setStartTime(e.target.value)} />
         </div>
         <div className='space-y-1'>
-          <Label className='text-xs'>{t('End Date')}</Label>
-          <Input type='date' className='h-9 w-36' value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          <Label className='text-xs'>{t('End')}</Label>
+          <Input type='datetime-local' className='h-9 w-44' value={endTime} onChange={(e) => setEndTime(e.target.value)} />
         </div>
         <div className='space-y-1'>
           <Label className='text-xs'>{t('Model')}</Label>
-          <Input className='h-9 w-44' placeholder={t('All models')} value={modelFilter} onChange={(e) => setModelFilter(e.target.value)} />
+          <ComboboxInput options={modelOptions} value={modelFilter} onValueChange={setModelFilter} placeholder={t('All models')} emptyText={t('No models found')} allowCustomValue className='w-48' />
         </div>
         <div className='space-y-1'>
           <Label className='text-xs'>{t('User')}</Label>
-          <Input className='h-9 w-32' placeholder={t('All users')} value={userFilter} onChange={(e) => setUserFilter(e.target.value)} />
+          <ComboboxInput options={userOptions} value={userFilter} onValueChange={setUserFilter} placeholder={t('All users')} emptyText={t('No users found')} allowCustomValue className='w-36' />
+        </div>
+        <div className='space-y-1'>
+          <Label className='text-xs'>{t('Channel')}</Label>
+          <ComboboxInput options={channelOptions} value={channelFilter} onValueChange={setChannelFilter} placeholder={t('All')} emptyText='' allowCustomValue className='w-28' />
+        </div>
+        <div className='space-y-1'>
+          <Label className='text-xs'>{t('Group')}</Label>
+          <ComboboxInput options={groupOptions} value={groupFilter} onValueChange={setGroupFilter} placeholder={t('All')} emptyText='' allowCustomValue className='w-28' />
         </div>
         <Button size='sm' onClick={query} disabled={loading}>
           {loading ? <Loader2 className='mr-1 h-4 w-4 animate-spin' /> : <Search className='mr-1 h-4 w-4' />}

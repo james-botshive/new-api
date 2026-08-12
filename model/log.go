@@ -701,6 +701,24 @@ func GetUserDistinctModels(userId int) ([]string, error) {
 	return models, err
 }
 
+func GetAdminDistinctUsers() ([]string, error) {
+	var users []string
+	err := LOG_DB.Table("logs").
+		Select("DISTINCT username").
+		Where("type = ? AND username != ''", LogTypeConsume).
+		Pluck("username", &users).Error
+	return users, err
+}
+
+func GetAdminDistinctModels() ([]string, error) {
+	var models []string
+	err := LOG_DB.Table("logs").
+		Select("DISTINCT model_name").
+		Where("type = ? AND model_name != ''", LogTypeConsume).
+		Pluck("model_name", &models).Error
+	return models, err
+}
+
 func CountOldLog(ctx context.Context, targetTimestamp int64) (int64, error) {
 	var total int64
 	if err := LOG_DB.WithContext(ctx).Model(&Log{}).Where("created_at < ?", targetTimestamp).Count(&total).Error; err != nil {

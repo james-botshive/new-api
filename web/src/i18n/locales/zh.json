@@ -5312,6 +5312,12 @@
     "All users": "全部用户",
     "View your upstream API usage grouped by model": "查看上游 API 调用按模型分组的统计信息",
     "Details": "明细",
-    "No models found": "暂无模型"
+    "No models found": "暂无模型",
+    "Start": "开始",
+    "End": "结束",
+    "Channel": "渠道",
+    "Group": "分组",
+    "All": "全部",
+    "No users found": "暂无用户"
   }
 }

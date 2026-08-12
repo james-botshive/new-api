@@ -36,8 +36,8 @@ func GetPersonalReconciliation(userId int, startTs, endTs int64, modelName strin
 }
 
 // GetAdminReconciliation returns all users' consume logs aggregated by user+model.
-func GetAdminReconciliation(startTs, endTs int64, modelName, username string) (*ReconResult, error) {
-	logs, _, err := model.GetAllLogs(model.LogTypeConsume, startTs, endTs, modelName, username, "", 0, 10000, 0, "", "", "")
+func GetAdminReconciliation(startTs, endTs int64, modelName, username string, channel int, group string) (*ReconResult, error) {
+	logs, _, err := model.GetAllLogs(model.LogTypeConsume, startTs, endTs, modelName, username, "", 0, 10000, channel, group, "", "")
 	if err != nil {
 		return nil, err
 	}

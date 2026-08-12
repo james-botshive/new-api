@@ -138,12 +138,16 @@ export async function getAdminReconciliation(params: {
   end_timestamp?: number
   model_name?: string
   username?: string
+  channel?: string
+  group?: string
 }): Promise<{ success: boolean; data: ReconResult }> {
   const search = new URLSearchParams()
   if (params.start_timestamp) search.set('start_timestamp', String(params.start_timestamp))
   if (params.end_timestamp) search.set('end_timestamp', String(params.end_timestamp))
   if (params.model_name) search.set('model_name', params.model_name)
   if (params.username) search.set('username', params.username)
+  if (params.channel) search.set('channel', params.channel)
+  if (params.group) search.set('group', params.group)
   const res = await api.get(`/api/log/reconciliation?${search}`)
   return res.data as { success: boolean; data: ReconResult }
 }

@@ -45,11 +45,22 @@ func GetAdminReconciliation(c *gin.Context) {
 	endTs, _ := strconv.ParseInt(c.Query("end_timestamp"), 10, 64)
 	modelName := c.Query("model_name")
 	username := c.Query("username")
+	channel, _ := strconv.Atoi(c.Query("channel"))
+	group := c.Query("group")
 
-	result, err := service.GetAdminReconciliation(startTs, endTs, modelName, username)
+	result, err := service.GetAdminReconciliation(startTs, endTs, modelName, username, channel, group)
 	if err != nil {
 		common.ApiError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
+}
+
+// GetAdminFilterOptions returns distinct users and models for dropdown filters.
+func GetAdminFilterOptions(c *gin.Context) {
+	users, _ := model.GetAdminDistinctUsers()
+	models, _ := model.GetAdminDistinctModels()
+	if users == nil { users = []string{} }
+	if models == nil { models = []string{} }
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"users": users, "models": models}})
 }
