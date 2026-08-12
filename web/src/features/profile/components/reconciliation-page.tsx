@@ -21,14 +21,13 @@ import { useState, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ComboboxInput } from '@/components/ui/combobox-input'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { api } from '@/lib/api'
 
 import { getPersonalReconciliation } from '../api'
-import type { ReconItem, ReconResult } from '../api'
+import type { ReconResult } from '../api'
 
 function formatCost(quota: number): string {
   return `$${(quota / 500000).toFixed(4)}`
@@ -68,7 +67,6 @@ export function ReconciliationPage() {
   const [modelFilter, setModelFilter] = useState('')
   const [modelOptions, setModelOptions] = useState<{ value: string; label: string }[]>([])
 
-  // Fetch distinct models the user has used
   useEffect(() => {
     api.get('/api/log/self/models').then((res: any) => {
       const models: string[] = res.data?.data ?? []
@@ -103,41 +101,28 @@ export function ReconciliationPage() {
   const total = data?.total
 
   return (
-    <div className='mx-auto max-w-5xl space-y-6 p-4 sm:p-6'>
-      <div>
-        <h1 className='text-2xl font-bold'>{t('Reconciliation')}</h1>
-        <p className='text-muted-foreground mt-1 text-sm'>{t('View your upstream API usage grouped by model')}</p>
-      </div>
+    <div className='space-y-4 p-4 sm:p-6'>
+      <h1 className='text-2xl font-bold'>{t('Reconciliation')}</h1>
 
       {/* Filters */}
-      <Card>
-        <CardContent className='flex flex-wrap items-end gap-3 pt-6'>
-          <div className='space-y-1'>
-            <Label className='text-xs'>{t('Start')}</Label>
-            <Input type='datetime-local' step='1' className='h-9 w-52' value={startTime} onChange={(e) => setStartTime(e.target.value)} />
-          </div>
-          <div className='space-y-1'>
-            <Label className='text-xs'>{t('End')}</Label>
-            <Input type='datetime-local' step='1' className='h-9 w-52' value={endTime} onChange={(e) => setEndTime(e.target.value)} />
-          </div>
-          <div className='space-y-1'>
-            <Label className='text-xs'>{t('Model')}</Label>
-            <ComboboxInput
-              options={modelOptions}
-              value={modelFilter}
-              onValueChange={setModelFilter}
-              placeholder={t('All models')}
-              emptyText={t('No models found')}
-              allowCustomValue
-              className='w-52'
-            />
-          </div>
-          <Button onClick={query} disabled={loading}>
-            {loading ? <Loader2 className='mr-1 h-4 w-4 animate-spin' /> : <Search className='mr-1 h-4 w-4' />}
-            {t('Query')}
-          </Button>
-        </CardContent>
-      </Card>
+      <div className='flex flex-wrap items-end gap-3'>
+        <div className='space-y-1'>
+          <Label className='text-xs'>{t('Start')}</Label>
+          <Input type='datetime-local' step='1' className='h-9 w-52' value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+        </div>
+        <div className='space-y-1'>
+          <Label className='text-xs'>{t('End')}</Label>
+          <Input type='datetime-local' step='1' className='h-9 w-52' value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+        </div>
+        <div className='space-y-1'>
+          <Label className='text-xs'>{t('Model')}</Label>
+          <ComboboxInput options={modelOptions} value={modelFilter} onValueChange={setModelFilter} placeholder={t('All models')} emptyText={t('No models found')} allowCustomValue className='w-52' />
+        </div>
+        <Button size='sm' onClick={query} disabled={loading}>
+          {loading ? <Loader2 className='mr-1 h-4 w-4 animate-spin' /> : <Search className='mr-1 h-4 w-4' />}
+          {t('Query')}
+        </Button>
+      </div>
 
       {error && <p className='text-destructive text-sm'>{error}</p>}
 
@@ -154,55 +139,52 @@ export function ReconciliationPage() {
 
       {/* Table */}
       {items.length > 0 && (
-        <Card>
-          <CardHeader><CardTitle className='text-base'>{t('Details')}</CardTitle></CardHeader>
-          <div className='overflow-x-auto'>
-            <table className='w-full text-xs'>
-              <thead className='bg-muted/50 border-b'>
-                <tr>
-                  <Th>{t('Model')}</Th>
-                  <Th>{t('Calls')}</Th>
-                  <Th>{t('Input')}</Th>
-                  <Th>{t('Output')}</Th>
-                  <Th>{t('Cache Hit')}</Th>
-                  <Th>{t('Cache W5m')}</Th>
-                  <Th>{t('Cache W1h')}</Th>
-                  <Th>{t('Cost')}</Th>
+        <div className='overflow-x-auto rounded-lg border'>
+          <table className='w-full text-xs'>
+            <thead className='bg-muted/50 border-b'>
+              <tr>
+                <Th>{t('Model')}</Th>
+                <Th>{t('Calls')}</Th>
+                <Th>{t('Input')}</Th>
+                <Th>{t('Output')}</Th>
+                <Th>{t('Cache Hit')}</Th>
+                <Th>{t('Cache W5m')}</Th>
+                <Th>{t('Cache W1h')}</Th>
+                <Th>{t('Cost')}</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item, i) => (
+                <tr key={i} className='border-b last:border-0'>
+                  <Td className='font-medium'>{item.model_name}</Td>
+                  <Td>{item.count}</Td>
+                  <Td>{fmt(item.prompt_tokens)}</Td>
+                  <Td>{fmt(item.completion_tokens)}</Td>
+                  <Td>{fmt(item.cache_hit_tokens)}</Td>
+                  <Td>{fmt(item.cache_write_5m_tokens)}</Td>
+                  <Td>{fmt(item.cache_write_1h_tokens)}</Td>
+                  <Td className='font-medium'>{formatCost(item.quota)}</Td>
                 </tr>
-              </thead>
-              <tbody>
-                {items.map((item, i) => (
-                  <tr key={i} className='border-b last:border-0'>
-                    <Td className='font-medium'>{item.model_name}</Td>
-                    <Td>{item.count}</Td>
-                    <Td>{fmt(item.prompt_tokens)}</Td>
-                    <Td>{fmt(item.completion_tokens)}</Td>
-                    <Td>{fmt(item.cache_hit_tokens)}</Td>
-                    <Td>{fmt(item.cache_write_5m_tokens)}</Td>
-                    <Td>{fmt(item.cache_write_1h_tokens)}</Td>
-                    <Td className='font-medium'>{formatCost(item.quota)}</Td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className='bg-muted/30 border-t font-medium'>
-                <tr>
-                  <Th>{t('Total')}</Th>
-                  <Th>{total?.count}</Th>
-                  <Th>{fmt(total?.prompt_tokens || 0)}</Th>
-                  <Th>{fmt(total?.completion_tokens || 0)}</Th>
-                  <Th>{fmt(total?.cache_hit_tokens || 0)}</Th>
-                  <Th>{fmt(total?.cache_write_5m_tokens || 0)}</Th>
-                  <Th>{fmt(total?.cache_write_1h_tokens || 0)}</Th>
-                  <Th>{formatCost(total?.quota || 0)}</Th>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </Card>
+              ))}
+            </tbody>
+            <tfoot className='bg-muted/30 border-t font-medium'>
+              <tr>
+                <Th>{t('Total')}</Th>
+                <Th>{total?.count}</Th>
+                <Th>{fmt(total?.prompt_tokens || 0)}</Th>
+                <Th>{fmt(total?.completion_tokens || 0)}</Th>
+                <Th>{fmt(total?.cache_hit_tokens || 0)}</Th>
+                <Th>{fmt(total?.cache_write_5m_tokens || 0)}</Th>
+                <Th>{fmt(total?.cache_write_1h_tokens || 0)}</Th>
+                <Th>{formatCost(total?.quota || 0)}</Th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       )}
 
       {!loading && items.length === 0 && (
-        <p className='text-muted-foreground py-12 text-center text-sm'>{t('No records found')}</p>
+        <p className='text-muted-foreground py-8 text-center text-sm'>{t('No records found')}</p>
       )}
     </div>
   )
@@ -210,12 +192,10 @@ export function ReconciliationPage() {
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <Card>
-      <CardContent className='pt-6'>
-        <p className='text-muted-foreground text-xs'>{label}</p>
-        <p className='mt-1 text-lg font-semibold'>{value}</p>
-      </CardContent>
-    </Card>
+    <div className='rounded-lg border p-3'>
+      <p className='text-muted-foreground text-xs'>{label}</p>
+      <p className='mt-1 text-lg font-semibold'>{value}</p>
+    </div>
   )
 }
 
