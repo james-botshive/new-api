@@ -692,6 +692,15 @@ func SumUsedToken(logType int, startTimestamp int64, endTimestamp int64, modelNa
 	return token
 }
 
+func GetUserDistinctModels(userId int) ([]string, error) {
+	var models []string
+	err := LOG_DB.Table("logs").
+		Select("DISTINCT model_name").
+		Where("user_id = ? AND type = ? AND model_name != ''", userId, LogTypeConsume).
+		Pluck("model_name", &models).Error
+	return models, err
+}
+
 func CountOldLog(ctx context.Context, targetTimestamp int64) (int64, error) {
 	var total int64
 	if err := LOG_DB.WithContext(ctx).Model(&Log{}).Where("created_at < ?", targetTimestamp).Count(&total).Error; err != nil {

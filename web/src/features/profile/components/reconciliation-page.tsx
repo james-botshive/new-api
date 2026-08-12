@@ -17,13 +17,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Loader2, Search } from 'lucide-react'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ComboboxInput } from '@/components/ui/combobox-input'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { api } from '@/lib/api'
 
 import { getPersonalReconciliation } from '../api'
 import type { ReconItem, ReconResult } from '../api'
@@ -56,6 +58,15 @@ export function ReconciliationPage() {
   const [startDate, setStartDate] = useState(daysAgo(7))
   const [endDate, setEndDate] = useState(todayStart())
   const [modelFilter, setModelFilter] = useState('')
+  const [modelOptions, setModelOptions] = useState<{ value: string; label: string }[]>([])
+
+  // Fetch distinct models the user has used
+  useEffect(() => {
+    api.get('/api/log/self/models').then((res: any) => {
+      const models: string[] = res.data?.data ?? []
+      setModelOptions(models.map((m) => ({ value: m, label: m })))
+    }).catch(() => {})
+  }, [])
 
   const query = useCallback(async () => {
     setLoading(true)
@@ -103,7 +114,15 @@ export function ReconciliationPage() {
           </div>
           <div className='space-y-1'>
             <Label className='text-xs'>{t('Model')}</Label>
-            <Input className='h-9 w-44' placeholder={t('All models')} value={modelFilter} onChange={(e) => setModelFilter(e.target.value)} />
+            <ComboboxInput
+              options={modelOptions}
+              value={modelFilter}
+              onValueChange={setModelFilter}
+              placeholder={t('All models')}
+              emptyText={t('No models found')}
+              allowCustomValue
+              className='w-52'
+            />
           </div>
           <Button onClick={query} disabled={loading}>
             {loading ? <Loader2 className='mr-1 h-4 w-4 animate-spin' /> : <Search className='mr-1 h-4 w-4' />}

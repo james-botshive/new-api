@@ -5,9 +5,24 @@ import (
 	"strconv"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/gin-gonic/gin"
 )
+
+// GetPersonalModels returns distinct model names from the current user's consume logs.
+func GetPersonalModels(c *gin.Context) {
+	userId := c.GetInt("id")
+	models, err := model.GetUserDistinctModels(userId)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": []string{}})
+		return
+	}
+	if models == nil {
+		models = []string{}
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": models})
+}
 
 // GetPersonalReconciliation returns the current user's consume logs aggregated by model.
 func GetPersonalReconciliation(c *gin.Context) {

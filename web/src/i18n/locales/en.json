@@ -5311,6 +5311,7 @@
     "User": "User",
     "All users": "All users",
     "View your upstream API usage grouped by model": "View your upstream API usage grouped by model",
-    "Details": "Details"
+    "Details": "Details",
+    "No models found": "No models found"
   }
 }
