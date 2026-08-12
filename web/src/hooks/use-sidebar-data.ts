@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import {
   Activity,
+  BarChart3,
   Box,
   CreditCard,
   FileText,
@@ -107,6 +108,11 @@ export function useSidebarData(): SidebarData {
             title: t('Wallet'),
             url: '/wallet',
             icon: Wallet,
+          },
+          {
+            title: t('Reconciliation'),
+            url: '/reconciliation',
+            icon: BarChart3,
           },
           {
             title: t('Profile'),

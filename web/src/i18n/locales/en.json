@@ -5309,6 +5309,8 @@
     "Query failed": "Query failed",
     "Network error": "Network error",
     "User": "User",
-    "All users": "All users"
+    "All users": "All users",
+    "View your upstream API usage grouped by model": "View your upstream API usage grouped by model",
+    "Details": "Details"
   }
 }
