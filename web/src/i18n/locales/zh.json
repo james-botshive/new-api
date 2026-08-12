@@ -5307,6 +5307,8 @@
     "Cost": "费用",
     "No records found": "暂无记录",
     "Query failed": "查询失败",
-    "Network error": "网络错误"
+    "Network error": "网络错误",
+    "User": "用户",
+    "All users": "全部用户"
   }
 }

@@ -110,3 +110,40 @@ export const getAllTaskLogs = (params: GetTaskLogsParams) =>
 
 export const getUserTaskLogs = (params: GetTaskLogsParams) =>
   fetchLogs('/api/task', params, false)
+
+// ============================================================================
+// Reconciliation API
+// ============================================================================
+
+export interface ReconItem {
+  username?: string
+  model_name: string
+  count: number
+  prompt_tokens: number
+  completion_tokens: number
+  cache_hit_tokens: number
+  cache_write_5m_tokens: number
+  cache_write_1h_tokens: number
+  cache_write_tokens: number
+  quota: number
+}
+
+export interface ReconResult {
+  items: ReconItem[]
+  total: ReconItem
+}
+
+export async function getAdminReconciliation(params: {
+  start_timestamp?: number
+  end_timestamp?: number
+  model_name?: string
+  username?: string
+}): Promise<{ success: boolean; data: ReconResult }> {
+  const search = new URLSearchParams()
+  if (params.start_timestamp) search.set('start_timestamp', String(params.start_timestamp))
+  if (params.end_timestamp) search.set('end_timestamp', String(params.end_timestamp))
+  if (params.model_name) search.set('model_name', params.model_name)
+  if (params.username) search.set('username', params.username)
+  const res = await api.get(`/api/log/reconciliation?${search}`)
+  return res.data as { success: boolean; data: ReconResult }
+}

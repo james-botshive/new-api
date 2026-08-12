@@ -5307,6 +5307,8 @@
     "Cost": "Cost",
     "No records found": "No records found",
     "Query failed": "Query failed",
-    "Network error": "Network error"
+    "Network error": "Network error",
+    "User": "User",
+    "All users": "All users"
   }
 }
