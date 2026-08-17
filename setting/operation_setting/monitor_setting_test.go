@@ -55,3 +55,38 @@ func TestGetMonitorSettingPreservesAutoBanOnlyMode(t *testing.T) {
 	require.NotNil(t, setting)
 	assert.Equal(t, ChannelTestModeAutoBanOnly, setting.ChannelTestMode)
 }
+
+func TestGetMonitorSetting_EmailNotifyEnvOverrides(t *testing.T) {
+	orig := monitorSetting
+	t.Cleanup(func() { monitorSetting = orig })
+
+	t.Setenv("EMAIL_NOTIFY_ENABLED", "true")
+	t.Setenv("EMAIL_NOTIFY_RECIPIENTS", "ops@example.com;dev@example.com")
+	monitorSetting = MonitorSetting{
+		EmailNotifyEnabled: false,
+		EmailRecipients:    "",
+	}
+
+	setting := GetMonitorSetting()
+
+	require.NotNil(t, setting)
+	assert.True(t, setting.EmailNotifyEnabled)
+	assert.Equal(t, "ops@example.com;dev@example.com", setting.EmailRecipients)
+}
+
+func TestGetMonitorSetting_EmailNotifyInvalidEnvIgnored(t *testing.T) {
+	orig := monitorSetting
+	t.Cleanup(func() { monitorSetting = orig })
+
+	t.Setenv("EMAIL_NOTIFY_ENABLED", "not-a-bool")
+	monitorSetting = MonitorSetting{
+		EmailNotifyEnabled: true,
+		EmailRecipients:    "ops@example.com",
+	}
+
+	setting := GetMonitorSetting()
+
+	require.NotNil(t, setting)
+	assert.True(t, setting.EmailNotifyEnabled, "invalid env value must be ignored")
+	assert.Equal(t, "ops@example.com", setting.EmailRecipients)
+}

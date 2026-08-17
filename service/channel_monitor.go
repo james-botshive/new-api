@@ -2,8 +2,11 @@ package service
 
 import (
 	"fmt"
+	"html"
+	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/relaykit/dto"
@@ -35,6 +38,25 @@ func channelFailKey(channelId int, group, modelName, usingKey string) string {
 		base += ":" + usingKey
 	}
 	return base
+}
+
+// normalizeEmailRecipients parses a recipient list separated by commas,
+// semicolons, or whitespace, deduplicates entries, and joins them with ";"
+// — the separator common.SendEmail expects.
+func normalizeEmailRecipients(raw string) string {
+	parts := strings.FieldsFunc(raw, func(r rune) bool {
+		return r == ',' || r == ';' || unicode.IsSpace(r)
+	})
+	seen := make(map[string]struct{}, len(parts))
+	result := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if _, ok := seen[p]; ok {
+			continue
+		}
+		seen[p] = struct{}{}
+		result = append(result, p)
+	}
+	return strings.Join(result, ";")
 }
 
 // HandleChannelFailure increments the consecutive-failure counter for a
@@ -94,6 +116,18 @@ func HandleChannelFailure(channelError types.ChannelError, group, modelName, las
 			entryCopy.count, setting.ChannelFailureThreshold,
 			common.LocalLogPreview(entryCopy.lastError))
 		NotifyRootUser(notifyType, subject, content)
+
+		// Email channel — independent of WeChat; both can fire on the same alert.
+		emailSetting := operation_setting.GetMonitorSetting()
+		if emailSetting.EmailNotifyEnabled {
+			recipients := normalizeEmailRecipients(emailSetting.EmailRecipients)
+			if recipients != "" {
+				body := "<pre>" + html.EscapeString(content) + "</pre>"
+				if err := common.SendEmail(subject, recipients, body); err != nil {
+					common.SysLog(fmt.Sprintf("failed to send channel-failure email: %s", err.Error()))
+				}
+			}
+		}
 	})
 }
 

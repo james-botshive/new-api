@@ -105,3 +105,37 @@ export async function fetchUpstreamRatios(request: FetchUpstreamRatiosRequest) {
   )
   return res.data
 }
+
+// ---- WeChat Bot QR registration/binding (self routes, admin-only when no
+// token is configured yet) ----
+
+export interface WeChatBotQRCodeResponse {
+  success: boolean
+  session_key?: string
+  qrcode_url?: string
+  message?: string
+}
+
+export interface WeChatBotQRStatusResponse {
+  success: boolean
+  data?: {
+    status: string
+    wechat_user_id?: string
+    bound?: string
+    error?: string
+  }
+}
+
+export async function getWeChatBotQRCode(): Promise<WeChatBotQRCodeResponse> {
+  const res = await api.post('/api/user/wechat/bot/qrcode')
+  return res.data
+}
+
+export async function pollWeChatBotQRStatus(
+  sessionKey: string
+): Promise<WeChatBotQRStatusResponse> {
+  const res = await api.get(
+    `/api/user/wechat/bot/qrcode/status?session_key=${encodeURIComponent(sessionKey)}`
+  )
+  return res.data
+}

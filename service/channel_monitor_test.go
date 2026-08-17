@@ -273,3 +273,25 @@ func TestGetChannelFailureState_Unknown(t *testing.T) {
 	state := GetChannelFailureState(99999, "default", "test-model", "")
 	assert.Nil(t, state, "unknown channel should return nil")
 }
+
+func TestNormalizeEmailRecipients(t *testing.T) {
+	tests := []struct {
+		name string
+		raw  string
+		want string
+	}{
+		{name: "empty", raw: "", want: ""},
+		{name: "single", raw: "a@example.com", want: "a@example.com"},
+		{name: "comma separated", raw: "a@example.com,b@example.com", want: "a@example.com;b@example.com"},
+		{name: "semicolon separated", raw: "a@example.com;b@example.com", want: "a@example.com;b@example.com"},
+		{name: "mixed separators with spaces", raw: " a@example.com , b@example.com; c@example.com ", want: "a@example.com;b@example.com;c@example.com"},
+		{name: "newline separated", raw: "a@example.com\nb@example.com", want: "a@example.com;b@example.com"},
+		{name: "deduplicates", raw: "a@example.com;a@example.com", want: "a@example.com"},
+		{name: "runs of separators", raw: "a@example.com,,;b@example.com", want: "a@example.com;b@example.com"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, normalizeEmailRecipients(tt.raw))
+		})
+	}
+}

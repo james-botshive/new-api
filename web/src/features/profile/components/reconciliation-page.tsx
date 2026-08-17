@@ -26,11 +26,15 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { api } from '@/lib/api'
 
-import { getPersonalReconciliation } from '../api'
-import type { ReconResult } from '../api'
+import { getPersonalReconciliation, type ReconResult } from '../api'
 
 function formatCost(quota: number): string {
   return `$${(quota / 500000).toFixed(4)}`
+}
+
+function formatRatio(ratio: number): string {
+  if (!ratio) return '-'
+  return String(Number(ratio.toFixed(3)))
 }
 
 function fmt(n: number): string {
@@ -156,12 +160,13 @@ export function ReconciliationPage() {
                 <Th>{t('Cache Hit')}</Th>
                 <Th>{t('Cache W5m')}</Th>
                 <Th>{t('Cache W1h')}</Th>
+                <Th>{t('Group Ratio')}</Th>
                 <Th>{t('Cost')}</Th>
               </tr>
             </thead>
             <tbody>
-              {items.map((item, i) => (
-                <tr key={i} className='border-b last:border-0'>
+              {items.map((item) => (
+                <tr key={item.model_name} className='border-b last:border-0'>
                   <Td className='font-medium'>{item.model_name}</Td>
                   <Td>{item.count}</Td>
                   <Td>{fmt(item.prompt_tokens)}</Td>
@@ -169,6 +174,7 @@ export function ReconciliationPage() {
                   <Td>{fmt(item.cache_hit_tokens)}</Td>
                   <Td>{fmt(item.cache_write_5m_tokens)}</Td>
                   <Td>{fmt(item.cache_write_1h_tokens)}</Td>
+                  <Td>{formatRatio(item.group_ratio)}</Td>
                   <Td className='font-medium'>{formatCost(item.quota)}</Td>
                 </tr>
               ))}
@@ -182,6 +188,7 @@ export function ReconciliationPage() {
                 <Th>{fmt(total?.cache_hit_tokens || 0)}</Th>
                 <Th>{fmt(total?.cache_write_5m_tokens || 0)}</Th>
                 <Th>{fmt(total?.cache_write_1h_tokens || 0)}</Th>
+                <Th>{formatRatio(total?.group_ratio ?? 0)}</Th>
                 <Th>{formatCost(total?.quota || 0)}</Th>
               </tr>
             </tfoot>

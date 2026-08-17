@@ -8,16 +8,23 @@ import (
 // ReconItem holds aggregated usage stats for one model (personal view)
 // or one user+model (admin view).
 type ReconItem struct {
-	Username           string `json:"username,omitempty"`
-	ModelName          string `json:"model_name"`
-	Count              int    `json:"count"`
-	PromptTokens       int    `json:"prompt_tokens"`
-	CompletionTokens   int    `json:"completion_tokens"`
-	CacheHitTokens     int    `json:"cache_hit_tokens"`
-	CacheWrite5mTokens int    `json:"cache_write_5m_tokens"`
-	CacheWrite1hTokens int    `json:"cache_write_1h_tokens"`
-	CacheWriteTokens   int    `json:"cache_write_tokens"`
-	Quota              int    `json:"quota"`
+	Username           string  `json:"username,omitempty"`
+	ModelName          string  `json:"model_name"`
+	Count              int     `json:"count"`
+	PromptTokens       int     `json:"prompt_tokens"`
+	CompletionTokens   int     `json:"completion_tokens"`
+	CacheHitTokens     int     `json:"cache_hit_tokens"`
+	CacheWrite5mTokens int     `json:"cache_write_5m_tokens"`
+	CacheWrite1hTokens int     `json:"cache_write_1h_tokens"`
+	CacheWriteTokens   int     `json:"cache_write_tokens"`
+	Quota              int     `json:"quota"`
+	GroupRatio         float64 `json:"group_ratio"`
+
+	// Accumulators for the quota-weighted group ratio, not serialized.
+	ratioWeighted float64
+	ratioQuota    float64
+	ratioSum      float64
+	ratioCount    int
 }
 
 // ReconResult is the full reconciliation response.
@@ -69,15 +76,23 @@ func aggregateLogs(logs []*model.Log, admin bool) *ReconResult {
 		item.CompletionTokens += log.CompletionTokens
 		item.Quota += log.Quota
 
-		// Parse cache tokens from the `other` JSON field
+		// Parse cache tokens and the group ratio applied at billing time
+		// from the `other` JSON field.
 		otherMap, _ := common.StrToMap(log.Other)
 		item.CacheHitTokens += intFromMap(otherMap, "cache_tokens")
 		item.CacheWrite5mTokens += intFromMap(otherMap, "cache_creation_tokens_5m")
 		item.CacheWrite1hTokens += intFromMap(otherMap, "cache_creation_tokens_1h")
 		item.CacheWriteTokens += intFromMap(otherMap, "cache_write_tokens")
+		if ratio, ok := floatFromMap(otherMap, "group_ratio"); ok {
+			item.ratioWeighted += ratio * float64(log.Quota)
+			item.ratioQuota += float64(log.Quota)
+			item.ratioSum += ratio
+			item.ratioCount++
+		}
 	}
 
 	for _, item := range grouped {
+		finalizeGroupRatio(item)
 		result.Items = append(result.Items, *item)
 		result.Total.Count += item.Count
 		result.Total.PromptTokens += item.PromptTokens
@@ -87,9 +102,44 @@ func aggregateLogs(logs []*model.Log, admin bool) *ReconResult {
 		result.Total.CacheWrite1hTokens += item.CacheWrite1hTokens
 		result.Total.CacheWriteTokens += item.CacheWriteTokens
 		result.Total.Quota += item.Quota
+		result.Total.ratioWeighted += item.ratioWeighted
+		result.Total.ratioQuota += item.ratioQuota
+		result.Total.ratioSum += item.ratioSum
+		result.Total.ratioCount += item.ratioCount
 	}
+	finalizeGroupRatio(&result.Total)
 
 	return result
+}
+
+// finalizeGroupRatio turns the per-log accumulators into the displayed
+// quota-weighted average of the group ratio; when the ratio-bearing calls
+// were not charged it falls back to the plain average of the ratios seen.
+func finalizeGroupRatio(item *ReconItem) {
+	if item.ratioCount == 0 {
+		return
+	}
+	if item.ratioQuota > 0 {
+		item.GroupRatio = item.ratioWeighted / item.ratioQuota
+	} else {
+		item.GroupRatio = item.ratioSum / float64(item.ratioCount)
+	}
+}
+
+func floatFromMap(m map[string]interface{}, key string) (float64, bool) {
+	v, ok := m[key]
+	if !ok {
+		return 0, false
+	}
+	switch n := v.(type) {
+	case float64:
+		return n, true
+	case int:
+		return float64(n), true
+	case int64:
+		return float64(n), true
+	}
+	return 0, false
 }
 
 func intFromMap(m map[string]interface{}, key string) int {

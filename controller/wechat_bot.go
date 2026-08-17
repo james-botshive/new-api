@@ -26,9 +26,10 @@ const (
 )
 
 type qrSession struct {
-	qrcode    string
-	qrcodeURL string
-	createdAt time.Time
+	qrcode      string
+	qrcodeURL   string
+	createdAt   time.Time
+	registering bool // true when the QR was requested without a configured token
 }
 
 var (
@@ -59,8 +60,12 @@ func randomHex(n int) string {
 
 // ---- iLink API helpers ----
 
+// ilinkHTTPClient is a package-level seam so tests can point the iLink calls
+// at a stub server instead of the real ilinkai.weixin.qq.com host.
+var ilinkHTTPClient = &http.Client{Timeout: 35 * time.Second}
+
 type qrCodeResp struct {
-	Qrcode          string `json:"qrcode"`
+	Qrcode           string `json:"qrcode"`
 	QrcodeImgContent string `json:"qrcode_img_content"`
 }
 
@@ -78,7 +83,7 @@ func ilinkPost(endpoint string, body []byte) ([]byte, error) {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := ilinkHTTPClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -91,8 +96,7 @@ func ilinkGet(endpoint string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	client := &http.Client{Timeout: 35 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := ilinkHTTPClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -102,26 +106,35 @@ func ilinkGet(endpoint string) ([]byte, error) {
 
 // ---- API handlers ----
 
-// GetWeChatQRCode generates a login QR code for the admin to scan.
-// The returned QR code URL embeds the system's bot token so that after scanning,
-// the server can resolve the admin's WeChat user ID.
+// GetWeChatQRCode generates a QR code for WeChat Bot registration or binding.
+//
+// With a configured token the QR binds the scanning user to the existing bot
+// (any authenticated user may bind). Without a token the QR is a registration
+// QR — iLink returns a fresh bot_token/baseurl on confirmation, which
+// PollWeChatQRStatus persists. Only admins may start a registration, since it
+// writes global settings.
 func GetWeChatQRCode(c *gin.Context) {
 	setting := operation_setting.GetMonitorSetting()
 
 	token := setting.WechatBotToken
-	baseURL := setting.WechatBotBaseURL
 
-	if token == "" || baseURL == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
+	if token == "" && c.GetInt("role") < common.RoleAdminUser {
+		c.JSON(http.StatusForbidden, gin.H{
 			"success": false,
-			"message": "系统微信 Bot 尚未配置，请先在系统设置中配置 WeChat Bot Token 和 Base URL",
+			"message": "仅管理员可注册微信 Bot",
 		})
 		return
 	}
 
-	// Call iLink get_bot_qrcode with our bot token in local_token_list
+	// An empty local_token_list makes iLink treat the QR as a bot registration
+	// (credentials arrive via the status endpoint); a populated list binds the
+	// scanner to the existing bot instead.
+	localTokenList := []string{}
+	if token != "" {
+		localTokenList = []string{token}
+	}
 	reqBody, _ := json.Marshal(map[string]interface{}{
-		"local_token_list": []string{token},
+		"local_token_list": localTokenList,
 	})
 	respBody, err := ilinkPost("/ilink/bot/get_bot_qrcode?bot_type="+ilinkBotType, reqBody)
 	if err != nil {
@@ -154,9 +167,10 @@ func GetWeChatQRCode(c *gin.Context) {
 	sessionKey := randomHex(16)
 	qrSessionsMu.Lock()
 	qrSessions[sessionKey] = &qrSession{
-		qrcode:    qrResp.Qrcode,
-		qrcodeURL: qrResp.QrcodeImgContent,
-		createdAt: time.Now(),
+		qrcode:      qrResp.Qrcode,
+		qrcodeURL:   qrResp.QrcodeImgContent,
+		createdAt:   time.Now(),
+		registering: token == "",
 	}
 	qrSessionsMu.Unlock()
 
@@ -190,6 +204,7 @@ func PollWeChatQRStatus(c *gin.Context) {
 		return
 	}
 	qrcode := sess.qrcode
+	registering := sess.registering
 	qrSessionsMu.Unlock()
 
 	respBody, err := ilinkGet("/ilink/bot/get_qrcode_status?qrcode=" + qrcode)
@@ -214,9 +229,38 @@ func PollWeChatQRStatus(c *gin.Context) {
 	if statusResp.Status == "confirmed" && statusResp.IlinkUserId != "" {
 		result["wechat_user_id"] = statusResp.IlinkUserId
 
-		// Save the fresh bot_token from the QR login
-		if statusResp.BotToken != "" {
-			model.UpdateOption("monitor_setting.wechat_bot_token", statusResp.BotToken)
+		// A registration QR must return the bot credentials; without them the
+		// registration failed. Surface it and drop the session so polling
+		// stops instead of binding the user to a nonexistent bot.
+		if registering && statusResp.BotToken == "" {
+			result["error"] = "服务器未返回 bot_token，请重新扫码注册"
+			qrSessionsMu.Lock()
+			delete(qrSessions, sessionKey)
+			qrSessionsMu.Unlock()
+			c.JSON(http.StatusOK, gin.H{
+				"success": true,
+				"data":    result,
+			})
+			return
+		}
+
+		// Persist the fresh credentials from the QR login. Global settings may
+		// only be written by admins — a non-admin binding scan must never
+		// overwrite the system bot token.
+		if c.GetInt("role") >= common.RoleAdminUser && statusResp.BotToken != "" {
+			baseURL := statusResp.BaseURL
+			if baseURL == "" {
+				baseURL = ilinkFixedBaseURL
+			}
+			err := model.UpdateOptionsBulk(map[string]string{
+				"monitor_setting.wechat_bot_token":    statusResp.BotToken,
+				"monitor_setting.wechat_bot_base_url": baseURL,
+				"monitor_setting.wechat_bot_id":       statusResp.IlinkBotId,
+			})
+			if err != nil {
+				common.SysLog("wechat qr: save bot credentials failed: " + err.Error())
+				result["error"] = "保存微信 Bot 配置失败"
+			}
 		}
 
 		// Auto-bind: save to current user's settings

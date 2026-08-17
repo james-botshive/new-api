@@ -61,6 +61,14 @@ const OPERATIONS_SECTIONS = [
             settings['monitor_setting.channel_failure_threshold'] ?? 5,
           'monitor_setting.channel_failure_cooldown_minutes':
             settings['monitor_setting.channel_failure_cooldown_minutes'] ?? 10,
+          'monitor_setting.email_notify_enabled':
+            settings['monitor_setting.email_notify_enabled'] ?? false,
+          'monitor_setting.email_recipients':
+            settings['monitor_setting.email_recipients'] ?? '',
+        }}
+        wechatBot={{
+          token: settings['monitor_setting.wechat_bot_token'] ?? '',
+          botId: settings['monitor_setting.wechat_bot_id'] ?? '',
         }}
       />
     ),

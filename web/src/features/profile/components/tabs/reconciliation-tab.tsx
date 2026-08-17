@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { BarChart3, Loader2, Search } from 'lucide-react'
+import { Loader2, Search } from 'lucide-react'
 import { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -24,12 +24,16 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-import { getPersonalReconciliation } from '../../api'
-import type { ReconItem, ReconResult } from '../../api'
+import { getPersonalReconciliation, type ReconResult } from '../../api'
 
 function formatCost(quota: number): string {
   const usd = quota / 500000
   return `$${usd.toFixed(4)}`
+}
+
+function formatRatio(ratio: number): string {
+  if (!ratio) return '-'
+  return String(Number(ratio.toFixed(3)))
 }
 
 function formatNumber(n: number): string {
@@ -131,12 +135,13 @@ export function ReconciliationTab() {
                 <Th>{t('Cache Hit')}</Th>
                 <Th>{t('Cache W5m')}</Th>
                 <Th>{t('Cache W1h')}</Th>
+                <Th>{t('Group Ratio')}</Th>
                 <Th>{t('Cost')}</Th>
               </tr>
             </thead>
             <tbody>
-              {items.map((item, i) => (
-                <tr key={i} className='border-b last:border-0'>
+              {items.map((item) => (
+                <tr key={item.model_name} className='border-b last:border-0'>
                   <Td className='font-medium'>{item.model_name}</Td>
                   <Td>{item.count}</Td>
                   <Td>{formatNumber(item.prompt_tokens)}</Td>
@@ -144,6 +149,7 @@ export function ReconciliationTab() {
                   <Td>{formatNumber(item.cache_hit_tokens)}</Td>
                   <Td>{formatNumber(item.cache_write_5m_tokens)}</Td>
                   <Td>{formatNumber(item.cache_write_1h_tokens)}</Td>
+                  <Td>{formatRatio(item.group_ratio)}</Td>
                   <Td className='font-medium'>{formatCost(item.quota)}</Td>
                 </tr>
               ))}
@@ -157,6 +163,7 @@ export function ReconciliationTab() {
                 <Th>{formatNumber(total?.cache_hit_tokens || 0)}</Th>
                 <Th>{formatNumber(total?.cache_write_5m_tokens || 0)}</Th>
                 <Th>{formatNumber(total?.cache_write_1h_tokens || 0)}</Th>
+                <Th>{formatRatio(total?.group_ratio ?? 0)}</Th>
                 <Th>{formatCost(total?.quota || 0)}</Th>
               </tr>
             </tfoot>

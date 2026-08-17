@@ -223,6 +223,7 @@ export interface ReconItem {
   cache_write_1h_tokens: number
   cache_write_tokens: number
   quota: number
+  group_ratio: number
 }
 
 export interface ReconResult {

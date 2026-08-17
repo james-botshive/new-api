@@ -54,6 +54,8 @@ import { useResetForm } from '../hooks/use-reset-form'
 import { useUpdateOption } from '../hooks/use-update-option'
 import { safeNumberFieldProps } from '../utils/numeric-field'
 
+import { WeChatBotCard } from './wechat-bot-card'
+
 const numericString = z.string().refine((value) => {
   const trimmed = value.trim()
   if (!trimmed) return true
@@ -65,6 +67,8 @@ const monitoringSchema = z.object({
   channel_failure_monitor_enabled: z.boolean(),
   channel_failure_threshold: z.coerce.number().min(1).max(1000),
   channel_failure_cooldown_minutes: z.coerce.number().min(0).max(1440),
+  email_notify_enabled: z.boolean(),
+  email_recipients: z.string(),
   perf_metrics_setting: z.object({
     enabled: z.boolean(),
     flush_interval: z.coerce.number().min(1),
@@ -81,6 +85,8 @@ type FlatMonitoringDefaults = {
   'monitor_setting.channel_failure_monitor_enabled': boolean
   'monitor_setting.channel_failure_threshold': number
   'monitor_setting.channel_failure_cooldown_minutes': number
+  'monitor_setting.email_notify_enabled': boolean
+  'monitor_setting.email_recipients': string
   'perf_metrics_setting.enabled': boolean
   'perf_metrics_setting.flush_interval': number
   'perf_metrics_setting.bucket_time': 'minute' | '5min' | 'hour'
@@ -89,6 +95,12 @@ type FlatMonitoringDefaults = {
 
 type MonitoringSettingsSectionProps = {
   defaultValues: FlatMonitoringDefaults
+  // Display-only WeChat Bot credentials; deliberately outside the form so the
+  // save flow never writes them back.
+  wechatBot?: {
+    token: string
+    botId: string
+  }
 }
 
 const buildFormDefaults = (
@@ -101,6 +113,8 @@ const buildFormDefaults = (
     defaults['monitor_setting.channel_failure_threshold'],
   channel_failure_cooldown_minutes:
     defaults['monitor_setting.channel_failure_cooldown_minutes'],
+  email_notify_enabled: defaults['monitor_setting.email_notify_enabled'],
+  email_recipients: defaults['monitor_setting.email_recipients'],
   perf_metrics_setting: {
     enabled: defaults['perf_metrics_setting.enabled'],
     flush_interval: defaults['perf_metrics_setting.flush_interval'],
@@ -119,6 +133,9 @@ const normalizeDefaults = (
     defaults['monitor_setting.channel_failure_threshold'],
   'monitor_setting.channel_failure_cooldown_minutes':
     defaults['monitor_setting.channel_failure_cooldown_minutes'],
+  'monitor_setting.email_notify_enabled':
+    defaults['monitor_setting.email_notify_enabled'],
+  'monitor_setting.email_recipients': defaults['monitor_setting.email_recipients'],
   'perf_metrics_setting.enabled': defaults['perf_metrics_setting.enabled'],
   'perf_metrics_setting.flush_interval':
     defaults['perf_metrics_setting.flush_interval'],
@@ -138,6 +155,8 @@ const normalizeFormValues = (
     values.channel_failure_threshold,
   'monitor_setting.channel_failure_cooldown_minutes':
     values.channel_failure_cooldown_minutes,
+  'monitor_setting.email_notify_enabled': values.email_notify_enabled,
+  'monitor_setting.email_recipients': values.email_recipients.trim(),
   'perf_metrics_setting.enabled': values.perf_metrics_setting.enabled,
   'perf_metrics_setting.flush_interval':
     values.perf_metrics_setting.flush_interval,
@@ -148,6 +167,7 @@ const normalizeFormValues = (
 
 export function MonitoringSettingsSection({
   defaultValues,
+  wechatBot,
 }: MonitoringSettingsSectionProps) {
   const { t } = useTranslation()
   const updateOption = useUpdateOption()
@@ -179,6 +199,7 @@ export function MonitoringSettingsSection({
   }, [defaultValues])
 
   const perfMetricsEnabled = form.watch('perf_metrics_setting.enabled')
+  const emailNotifyEnabled = form.watch('email_notify_enabled')
 
   const onSubmit = async (values: MonitoringFormValues) => {
     const normalized = normalizeFormValues(values)
@@ -237,7 +258,7 @@ export function MonitoringSettingsSection({
             <h4 className='font-medium'>{t('Channel Failure Alert')}</h4>
             <p className='text-muted-foreground mt-1 text-xs'>
               {t(
-                'Send WeChat notification to admins when an upstream channel fails consecutively.'
+                'Send WeChat or email notifications to admins when an upstream channel fails consecutively.'
               )}
             </p>
           </div>
@@ -310,6 +331,54 @@ export function MonitoringSettingsSection({
               )}
             />
           </div>
+
+          <FormField
+            control={form.control}
+            name='email_notify_enabled'
+            render={({ field }) => (
+              <SettingsSwitchItem>
+                <SettingsSwitchContent>
+                  <FormLabel>{t('Enable email notification')}</FormLabel>
+                </SettingsSwitchContent>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </SettingsSwitchItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name='email_recipients'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('Email recipients')}</FormLabel>
+                <FormControl>
+                  <Input
+                    type='text'
+                    placeholder='admin@example.com,ops@example.com'
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={!emailNotifyEnabled}
+                  />
+                </FormControl>
+                <FormDescription>
+                  {t(
+                    'Comma-separated email addresses; alerts are sent to all recipients'
+                  )}
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <WeChatBotCard
+            token={wechatBot?.token ?? ''}
+            botId={wechatBot?.botId ?? ''}
+          />
 
           <div>
             <h4 className='font-medium'>{t('Model performance metrics')}</h4>

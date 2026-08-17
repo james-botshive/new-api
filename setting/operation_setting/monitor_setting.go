@@ -18,9 +18,14 @@ type MonitorSetting struct {
 	ChannelFailureThreshold      int    `json:"channel_failure_threshold"`
 	ChannelFailureCooldownMinutes int    `json:"channel_failure_cooldown_minutes"`
 
+	// Email channel — independent of WeChat, both can fire on the same alert
+	EmailNotifyEnabled bool   `json:"email_notify_enabled"`
+	EmailRecipients    string `json:"email_recipients"`
+
 	// WeChat iLink Bot notification config
 	WechatBotBaseURL        string `json:"wechat_bot_base_url"`
 	WechatBotToken          string `json:"wechat_bot_token"`
+	WechatBotId             string `json:"wechat_bot_id"`
 	WechatBotAppId          string `json:"wechat_bot_app_id"`
 	WechatBotClientVersion  string `json:"wechat_bot_client_version"`
 	WechatBotChannelVersion string `json:"wechat_bot_channel_version"`
@@ -42,8 +47,11 @@ var monitorSetting = MonitorSetting{
 	ChannelFailureMonitorEnabled:   false,
 	ChannelFailureThreshold:        5,
 	ChannelFailureCooldownMinutes:  10,
+	EmailNotifyEnabled:             false,
+	EmailRecipients:                "",
 	WechatBotBaseURL:               "",
 	WechatBotToken:                 "",
+	WechatBotId:                    "",
 	WechatBotAppId:                 "",
 	WechatBotClientVersion:         "",
 	WechatBotChannelVersion:        "1.0.0",
@@ -125,6 +133,17 @@ func GetMonitorSetting() *MonitorSetting {
 	}
 	if v := os.Getenv("WECHAT_BOT_TO_USER_ID"); v != "" {
 		monitorSetting.WechatBotToUserId = v
+	}
+
+	// Email channel env overrides
+	if v := os.Getenv("EMAIL_NOTIFY_ENABLED"); v != "" {
+		parsed, err := strconv.ParseBool(v)
+		if err == nil {
+			monitorSetting.EmailNotifyEnabled = parsed
+		}
+	}
+	if v := os.Getenv("EMAIL_NOTIFY_RECIPIENTS"); v != "" {
+		monitorSetting.EmailRecipients = v
 	}
 
 	return &monitorSetting

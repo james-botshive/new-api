@@ -74,7 +74,6 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
   // WeChat QR binding state
   const [qrLoading, setQrLoading] = useState(false)
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null)
-  const [qrSessionKey, setQrSessionKey] = useState<string | null>(null)
   const [qrStatus, setQrStatus] = useState<string>('') // wait | scaned | confirmed | expired
   const [qrError, setQrError] = useState<string>('')
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -141,7 +140,6 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
           color: { dark: '#000000', light: '#ffffff' },
         })
         setQrCodeDataUrl(dataUrl)
-        setQrSessionKey(res.session_key)
         setQrStatus('wait')
         // Start polling
         startPolling(res.session_key)
@@ -173,7 +171,6 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
               toast.success(t('WeChat binding successful!'))
               setTimeout(() => {
                 setQrCodeDataUrl(null)
-                setQrSessionKey(null)
               }, 2000)
               return
             } else if (res.data.status === 'expired') {
@@ -206,7 +203,6 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
   const cancelQrBinding = () => {
     stopPolling()
     setQrCodeDataUrl(null)
-    setQrSessionKey(null)
     setQrStatus('')
     setQrError('')
   }
@@ -222,7 +218,7 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
       } else {
         toast.error(response.message || t('Failed to update settings'))
       }
-    } catch (_error) {
+    } catch {
       toast.error(t('Failed to update settings'))
     } finally {
       setLoading(false)
@@ -240,8 +236,9 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
           value={[notifyType]}
           onValueChange={(value) => {
             const nextValue = value.find((item) => item !== notifyType)
-            if (nextValue)
+            if (nextValue) {
               updateField('notify_type', normalizeNotifyType(nextValue))
+            }
           }}
           aria-label={t('Notification Method')}
           variant='outline'
@@ -418,82 +415,84 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
       )}
 
       {/* WeChat Bot Settings */}
-      {notifyType === 'wechat' && (
-        <>
-          {settings.wechat_user_id ? (
-            <div className='rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-950'>
-              <div className='flex items-center gap-2'>
-                <IconWeChat className='h-5 w-5 text-green-600' />
-                <span className='font-medium text-green-700 dark:text-green-400'>
-                  {t('WeChat Bound')}
-                </span>
-              </div>
-              <p className='text-muted-foreground mt-2 text-xs'>
-                {t('WeChat User ID')}: {settings.wechat_user_id}
+      {notifyType === 'wechat' && settings.wechat_user_id ? (
+        <div className='rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-950'>
+          <div className='flex items-center gap-2'>
+            <IconWeChat className='h-5 w-5 text-green-600' />
+            <span className='font-medium text-green-700 dark:text-green-400'>
+              {t('WeChat Bound')}
+            </span>
+          </div>
+          <p className='text-muted-foreground mt-2 text-xs'>
+            {t('WeChat User ID')}: {settings.wechat_user_id}
+          </p>
+          <Button
+            variant='outline'
+            size='sm'
+            className='mt-3'
+            onClick={() => updateField('wechat_user_id', '')}
+          >
+            {t('Unbind')}
+          </Button>
+        </div>
+      ) : null}
+
+      {notifyType === 'wechat' && !settings.wechat_user_id && qrCodeDataUrl ? (
+        <div className='rounded-lg border p-4'>
+          <div className='flex flex-col items-center gap-3'>
+            <img
+              src={qrCodeDataUrl}
+              alt={t('WeChat binding QR code')}
+              className='size-48 rounded-lg border object-contain'
+            />
+            {qrStatus === 'wait' && (
+              <p className='text-muted-foreground text-sm'>
+                <Loader2 className='mr-1.5 inline-block h-3.5 w-3.5 animate-spin' />
+                {t('Waiting for scan...')}
               </p>
-              <Button
-                variant='outline'
-                size='sm'
-                className='mt-3'
-                onClick={() => updateField('wechat_user_id', '')}
-              >
-                {t('Unbind')}
-              </Button>
+            )}
+            {qrStatus === 'scaned' && (
+              <p className='text-primary text-sm font-medium'>
+                {t('Scanned! Confirm on your phone...')}
+              </p>
+            )}
+            {qrStatus === 'confirmed' && (
+              <p className='text-green-600 text-sm font-medium'>
+                {t('Binding successful!')}
+              </p>
+            )}
+            {qrError && (
+              <p className='text-destructive text-sm'>{qrError}</p>
+            )}
+            <Button variant='ghost' size='sm' onClick={cancelQrBinding}>
+              {t('Cancel')}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {notifyType === 'wechat' &&
+      !settings.wechat_user_id &&
+      !qrCodeDataUrl ? (
+        <div className='rounded-lg border p-4'>
+          <div className='flex flex-col items-center gap-3 text-center'>
+            <QrCode className='text-muted-foreground h-12 w-12' />
+            <div>
+              <p className='font-medium'>{t('Bind WeChat for Notifications')}</p>
+              <p className='text-muted-foreground mt-1 text-xs'>
+                {t('Scan a QR code with WeChat to bind your account and receive alert notifications.')}
+              </p>
             </div>
-          ) : qrCodeDataUrl ? (
-            <div className='rounded-lg border p-4'>
-              <div className='flex flex-col items-center gap-3'>
-                <img
-                  src={qrCodeDataUrl}
-                  alt={t('WeChat binding QR code')}
-                  className='size-48 rounded-lg border object-contain'
-                />
-                {qrStatus === 'wait' && (
-                  <p className='text-muted-foreground text-sm'>
-                    <Loader2 className='mr-1.5 inline-block h-3.5 w-3.5 animate-spin' />
-                    {t('Waiting for scan...')}
-                  </p>
-                )}
-                {qrStatus === 'scaned' && (
-                  <p className='text-primary text-sm font-medium'>
-                    {t('Scanned! Confirm on your phone...')}
-                  </p>
-                )}
-                {qrStatus === 'confirmed' && (
-                  <p className='text-green-600 text-sm font-medium'>
-                    {t('Binding successful!')}
-                  </p>
-                )}
-                {qrError && (
-                  <p className='text-destructive text-sm'>{qrError}</p>
-                )}
-                <Button variant='ghost' size='sm' onClick={cancelQrBinding}>
-                  {t('Cancel')}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className='rounded-lg border p-4'>
-              <div className='flex flex-col items-center gap-3 text-center'>
-                <QrCode className='text-muted-foreground h-12 w-12' />
-                <div>
-                  <p className='font-medium'>{t('Bind WeChat for Notifications')}</p>
-                  <p className='text-muted-foreground mt-1 text-xs'>
-                    {t('Scan a QR code with WeChat to bind your account and receive alert notifications.')}
-                  </p>
-                </div>
-                <Button onClick={startQrBinding} disabled={qrLoading}>
-                  {qrLoading && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
-                  {qrLoading ? t('Generating QR...') : t('Generate QR Code')}
-                </Button>
-                {qrError && (
-                  <p className='text-destructive text-sm'>{qrError}</p>
-                )}
-              </div>
-            </div>
-          )}
-        </>
-      )}
+            <Button onClick={startQrBinding} disabled={qrLoading}>
+              {qrLoading && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
+              {qrLoading ? t('Generating QR...') : t('Generate QR Code')}
+            </Button>
+            {qrError && (
+              <p className='text-destructive text-sm'>{qrError}</p>
+            )}
+          </div>
+        </div>
+      ) : null}
 
       {/* Divider */}
       <div className='border-t' />

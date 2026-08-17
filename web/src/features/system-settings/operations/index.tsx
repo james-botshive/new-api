@@ -59,6 +59,11 @@ const defaultOperationsSettings: OperationsSettings = {
   'monitor_setting.channel_failure_monitor_enabled': false,
   'monitor_setting.channel_failure_threshold': 5,
   'monitor_setting.channel_failure_cooldown_minutes': 10,
+  'monitor_setting.email_notify_enabled': false,
+  'monitor_setting.email_recipients': '',
+  'monitor_setting.wechat_bot_token': '',
+  'monitor_setting.wechat_bot_base_url': '',
+  'monitor_setting.wechat_bot_id': '',
 }
 
 export function OperationsSettings() {

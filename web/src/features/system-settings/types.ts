@@ -371,6 +371,11 @@ export type OperationsSettings = {
   'monitor_setting.channel_failure_monitor_enabled': boolean
   'monitor_setting.channel_failure_threshold': number
   'monitor_setting.channel_failure_cooldown_minutes': number
+  'monitor_setting.email_notify_enabled': boolean
+  'monitor_setting.email_recipients': string
+  'monitor_setting.wechat_bot_token': string
+  'monitor_setting.wechat_bot_base_url': string
+  'monitor_setting.wechat_bot_id': string
 }
 
 export type SecuritySettings = {
